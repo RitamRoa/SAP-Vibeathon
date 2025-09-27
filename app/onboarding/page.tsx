@@ -2,11 +2,10 @@
 
 import type React from "react"
 
-import { useMemo, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 import { Logo } from "@/components/ui/logo"
 import { Upload, Loader2, CheckCircle, X, Plus, ArrowLeft, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -65,7 +64,7 @@ const steps: Array<{
   {
     id: "interests",
     title: "Fine-tune your interests",
-    description: "Blend AI-detected skills with your own focus areas – the graph updates recommendations in real time.",
+    description: "Blend AI-detected interests with your own focus areas – the graph updates recommendations in real time.",
     highlights: [
       "Tap any glowing node to add/remove an interest",
       "Type in niche topics to steer the concierge",
@@ -84,94 +83,16 @@ const steps: Array<{
   },
 ]
 
-const interestNodePositions = [
-  { top: "12%", left: "16%" },
-  { top: "8%", left: "58%" },
-  { top: "22%", left: "78%" },
-  { top: "40%", left: "10%" },
-  { top: "36%", left: "48%" },
-  { top: "44%", left: "78%" },
-  { top: "62%", left: "22%" },
-  { top: "66%", left: "58%" },
-  { top: "78%", left: "35%" },
-  { top: "18%", left: "34%" },
-  { top: "54%", left: "30%" },
-  { top: "70%", left: "76%" },
+const FALLBACK_INTERESTS = [
+  "Artificial Intelligence",
+  "Business Development",
+  "Product Strategy",
+  "Event Marketing",
+  "Partnerships",
+  "Customer Success",
+  "Data Analytics",
+  "Leadership",
 ]
-
-const floatingStyles = `
-  @keyframes onboarding-float {
-    0%, 100% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(0, -16px, 0) scale(1.03);
-    }
-  }
-
-  @keyframes onboarding-pulse {
-    0%, 100% {
-      opacity: 0.35;
-    }
-    50% {
-      opacity: 0.7;
-    }
-  }
-`
-
-function AnimatedInterestGraph({
-  nodes,
-  onSelect,
-  selected,
-}: {
-  nodes: string[]
-  onSelect: (interest: string) => void
-  selected: string[]
-}) {
-  return (
-    <div className="relative h-[420px] rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background overflow-hidden">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/20" />
-        <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/10" />
-        <div className="absolute inset-x-12 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-        <div className="absolute inset-y-12 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-primary/15 to-transparent" />
-      </div>
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(236,72,153,0.08),transparent_40%),radial-gradient(circle_at_50%_80%,rgba(255,255,255,0.04),transparent_50%)]" />
-
-      {nodes.map((interest, index) => {
-        const position = interestNodePositions[index % interestNodePositions.length]
-        const isActive = selected.includes(interest)
-
-        return (
-          <button
-            key={`${interest}-${index}`}
-            type="button"
-            onClick={() => onSelect(interest)}
-            aria-pressed={isActive}
-            className={`absolute flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-lg backdrop-blur transition-colors duration-300 ${
-              isActive
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-primary/20 bg-card/70 text-muted-foreground hover:border-primary/60 hover:text-foreground"
-            }`}
-            style={{
-              top: position.top,
-              left: position.left,
-              animation: "onboarding-float 12s ease-in-out infinite",
-              animationDelay: `${(index % 6) * 0.45}s`,
-              animationDuration: `${12 + (index % 4) * 2}s`,
-            }}
-          >
-            <span>{interest}</span>
-            {isActive && <CheckCircle className="h-3.5 w-3.5" />}
-          </button>
-        )
-      })}
-
-      <div className="pointer-events-none absolute inset-3 rounded-[26px] border border-white/10" style={{ animation: "onboarding-pulse 8s ease-in-out infinite" }} />
-    </div>
-  )
-}
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("register")
@@ -236,7 +157,7 @@ export default function OnboardingPage() {
       setUploadProgress(60)
 
       const rawPayload = await response.text()
-      let payload: { skills?: string[]; error?: string } | null = null
+      let payload: { interests?: string[]; skills?: string[]; error?: string } | null = null
       try {
         payload = rawPayload ? JSON.parse(rawPayload) : null
       } catch (error) {
@@ -247,20 +168,20 @@ export default function OnboardingPage() {
         throw new Error(payload?.error ?? "Failed to analyze your profile. Please try again.")
       }
 
-      const skills = dedupeList(payload?.skills ?? [])
+      const detected = dedupeList(payload?.interests ?? payload?.skills ?? [])
 
-      if (skills.length === 0) {
-        throw new Error("We couldn't detect any skills. Please review your PDF and try again.")
+      if (detected.length === 0) {
+        throw new Error("We were unable to detect any interests. Please review your PDF and try again.")
       }
 
-      setSelectedInterests(skills)
-      setSuggestedInterests(dedupeList([...skills, ...defaultInterests]))
+      setSelectedInterests(detected)
+      setSuggestedInterests(dedupeList([...detected, ...defaultInterests]))
       setUploadProgress(100)
       setUploadComplete(true)
 
       toast({
         title: "Profile analyzed",
-        description: `We detected ${skills.length} skill${skills.length === 1 ? "" : "s"}.`,
+        description: `We detected ${detected.length} interest${detected.length === 1 ? "" : "s"}.`,
       })
 
       setTimeout(() => setCurrentStep("interests"), 1400)
@@ -279,6 +200,20 @@ export default function OnboardingPage() {
         fileInputRef.current.value = ""
       }
     }
+  }
+
+  const handleSkipUpload = () => {
+    // Use fallback interests when skipping upload
+    const fallbackInterests = FALLBACK_INTERESTS.slice(0, 6)
+    setSelectedInterests(fallbackInterests)
+    setSuggestedInterests(dedupeList([...fallbackInterests, ...defaultInterests]))
+    
+    toast({
+      title: "Using default interests",
+      description: "You can customize these in the next step.",
+    })
+    
+    setCurrentStep("interests")
   }
 
   const toggleInterest = (interest: string) => {
@@ -311,11 +246,6 @@ export default function OnboardingPage() {
   const progress = ((currentStepIndex + (currentStep === "complete" ? 1 : 0)) / steps.length) * 100
   const activeStep = steps[currentStepIndex] ?? steps[0]
 
-  const animatedNodes = useMemo(
-    () => dedupeList([...selectedInterests, ...suggestedInterests]).slice(0, 12),
-    [selectedInterests, suggestedInterests],
-  )
-
   const handleBack = () => {
     if (currentStep === "register") return
     const previousStep = steps[Math.max(0, currentStepIndex - 1)]
@@ -324,21 +254,16 @@ export default function OnboardingPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
-      <style jsx global>{floatingStyles}</style>
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-1/4 right-1/4 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-1/3 left-1/3 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_55%)]" />
-      </div>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_55%)]" />
 
-      <div className="relative z-10 mx-auto max-w-6xl px-6 py-12 lg:py-16">
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <Logo size="lg" />
             <div>
               <p className="text-xs uppercase tracking-[0.4em] text-primary">Event Hub Onboarding</p>
               <h1 className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
-                Let's tailor your event experience
+                Let&apos;s tailor your event experience
               </h1>
             </div>
           </div>
@@ -352,8 +277,8 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <div className="grid items-start gap-10 lg:grid-cols-[300px_1fr]">
-          <aside className="rounded-3xl border border-border/60 bg-card/85 p-8 shadow-lg backdrop-blur">
+        <div className="grid items-start gap-10 lg:grid-cols-[280px_1fr]">
+          <aside className="rounded-3xl border border-border/60 bg-card p-6 shadow-lg">
             <div className="relative pl-6">
               <div className="absolute left-6 top-6 bottom-6 w-px bg-border/50" aria-hidden />
               <div className="space-y-6">
@@ -417,7 +342,7 @@ export default function OnboardingPage() {
           </aside>
 
           <section className="space-y-6">
-            <div className="overflow-hidden rounded-3xl border border-border/60 bg-card/90 shadow-2xl backdrop-blur">
+            <div className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-2xl">
               <div className="grid gap-4 border-b border-border/40 bg-gradient-to-r from-primary/10 via-transparent to-transparent px-8 py-6 lg:grid-cols-[auto_auto] lg:items-start lg:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.4em] text-primary">Step {currentStepIndex + 1}</p>
@@ -522,7 +447,7 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="hidden border-l border-border/60 bg-secondary/5 px-8 py-12 lg:block">
-                    <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">What you'll unlock</p>
+                    <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">What you&apos;ll unlock</p>
                     <ul className="mt-8 space-y-6 text-sm text-muted-foreground">
                       <li className="space-y-1">
                         <span className="font-medium text-foreground">Smart agenda</span>
@@ -544,17 +469,17 @@ export default function OnboardingPage() {
               {currentStep === "upload" && (
                 <div className="grid gap-10 px-8 py-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-10">
                   <div className="space-y-6">
-                    <div className="rounded-2xl border border-primary/25 bg-primary/12 px-5 py-4 text-sm text-primary/90">
-                      Export your LinkedIn profile as a PDF and drop it here. Gemini will scan it in seconds to surface skills, industries, and keywords you can tweak in the next step.
+                    <div className="rounded-2xl border border-primary/25 bg-primary/10 px-5 py-4 text-sm text-primary/90">
+                      Export your LinkedIn profile as a PDF and drop it here. We&apos;ll auto-suggest relevant interests so you can hit the ground running.
                     </div>
                     <div className="space-y-4 text-sm text-muted-foreground">
                       <p className="flex items-center gap-2 text-foreground">
                         <CheckCircle className="h-4 w-4 text-primary" /> Secure, one-time processing
                       </p>
-                      <p className="leading-relaxed">No storage of your PDF once interests are extracted.</p>
+                      <p className="leading-relaxed">We only use your PDF to pre-fill interests—no external AI services required.</p>
                       <p className="leading-relaxed">
-                        Need help exporting?{' '}
-                        <Link href="#" className="text-primary underline-offset-2 hover:underline">
+                        Need help exporting?
+                        <Link href="#" className="ml-1 text-primary underline-offset-2 hover:underline">
                           View quick guide
                         </Link>
                       </p>
@@ -562,7 +487,7 @@ export default function OnboardingPage() {
                   </div>
 
                   <div>
-                  <div className="relative flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-primary/35 bg-primary/10/10 p-10 text-center transition-colors hover:border-primary/70">
+                  <div className="relative flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-primary/35 bg-background p-10 text-center transition-colors hover:border-primary/70">
                       <input
                         type="file"
                         accept=".pdf"
@@ -604,8 +529,23 @@ export default function OnboardingPage() {
 
                     {uploadComplete && (
                       <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4 text-sm text-primary">
-                        <p className="font-medium text-foreground">We found key skills!</p>
-                        <p className="mt-1 text-muted-foreground">Hang tight while we stage them for your interest map...</p>
+                        <p className="font-medium text-foreground">We loaded a starter set of interests.</p>
+                        <p className="mt-1 text-muted-foreground">Review the tags below and make them your own.</p>
+                      </div>
+                    )}
+
+                    {!isUploading && !uploadComplete && (
+                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                        <Button
+                          variant="outline"
+                          onClick={handleSkipUpload}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          Skip upload
+                        </Button>
+                        <p className="text-center text-xs text-muted-foreground sm:hidden">
+                          You can always add interests manually in the next step
+                        </p>
                       </div>
                     )}
                   </div>
@@ -614,8 +554,7 @@ export default function OnboardingPage() {
 
               {currentStep === "interests" && (
                 <div className="space-y-10 px-8 py-10 lg:px-10">
-                  <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-                    <div className="space-y-8">
+                  <div className="space-y-8">
                       <div className="flex flex-col gap-6 rounded-3xl border border-primary/20 bg-primary/10/20 p-6">
                         <div className="flex flex-wrap items-baseline justify-between gap-3">
                           <div>
@@ -679,7 +618,7 @@ export default function OnboardingPage() {
                       </div>
 
                       <div className="space-y-3">
-                        <Label className="text-sm font-medium">Gemini suggestions</Label>
+                        <Label className="text-sm font-medium">Suggested interests</Label>
                         <div className="flex flex-wrap gap-2">
                           {suggestedInterests
                             .filter((interest) => !selectedInterests.includes(interest))
@@ -697,13 +636,10 @@ export default function OnboardingPage() {
                       </div>
                     </div>
 
-                    <AnimatedInterestGraph nodes={animatedNodes} onSelect={toggleInterest} selected={selectedInterests} />
-                  </div>
-
                   <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/10 px-5 py-4 text-sm text-primary">
                     <p className="font-medium text-foreground">Pro tip</p>
                     <p className="text-muted-foreground">
-                      Mix industries, disciplines, and soft skills. The more varied your interests, the better our match graph works across sessions, people, and sponsors.
+                      Mix industries, disciplines, and soft interests. The more varied your interests, the better our match graph works across sessions, people, and sponsors.
                     </p>
                   </div>
 

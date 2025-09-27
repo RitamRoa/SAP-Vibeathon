@@ -37,7 +37,7 @@ export function ChatWidget({ className = "" }: ChatWidgetProps) {
           <CardContent className="flex-1 flex flex-col p-4 pt-0">
             <div className="flex-1 mb-4">
               <div className="bg-muted rounded-lg p-3 mb-4">
-                <p className="text-sm">Hi! I'm your AI event assistant. How can I help you today?</p>
+                <p className="text-sm">Hi! I&apos;m your AI event assistant. How can I help you today?</p>
               </div>
               <div className="space-y-2">
                 {quickQuestions.map((question) => (

@@ -13,7 +13,7 @@ export default function DashboardPage() {
       <div className="container mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Welcome back, John!</h1>
-          <p className="text-muted-foreground">Here's what's happening at your event today.</p>
+          <p className="text-muted-foreground">Here&apos;s what&apos;s happening at your event today.</p>
         </div>
 
         {/* Quick Stats */}
@@ -126,13 +126,13 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Today's Schedule Preview */}
+        {/* Today&apos;s Schedule Preview */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Today's Schedule
+                Today&apos;s Schedule
               </CardTitle>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/agenda">View All</Link>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                 <div className="text-sm font-medium text-primary">9:00 AM</div>
                 <div className="flex-1">
                   <p className="font-medium">The Future of AI in Web Development</p>
-                  <p className="text-sm text-muted-foreground">Main Stage • Sarah Chen</p>
+                  <p className="text-sm text-muted-foreground">Main Stage &bull; Sarah Chen</p>
                 </div>
                 <Star className="h-4 w-4 text-primary" />
               </div>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
                 <div className="text-sm font-medium text-primary">4:15 PM</div>
                 <div className="flex-1">
                   <p className="font-medium">Advanced Machine Learning Techniques</p>
-                  <p className="text-sm text-muted-foreground">Main Stage • Dr. James Liu</p>
+                  <p className="text-sm text-muted-foreground">Main Stage &bull; Dr. James Liu</p>
                 </div>
                 <Star className="h-4 w-4 text-primary" />
               </div>

@@ -79,7 +79,7 @@ const mockParticipants: Participant[] = [
 ]
 
 export default function NetworkingPage() {
-  const [participants, setParticipants] = useState<Participant[]>(mockParticipants)
+  const participants = mockParticipants
   const [currentIndex, setCurrentIndex] = useState(0)
   const [connections, setConnections] = useState<Participant[]>([])
   const [ignored, setIgnored] = useState<Participant[]>([])
@@ -102,7 +102,7 @@ export default function NetworkingPage() {
   }
 
   const nextParticipant = () => {
-    setCurrentIndex((prev) => prev + 1)
+    setCurrentIndex((prev) => Math.min(prev + 1, participants.length))
   }
 
   const undoLastAction = () => {
@@ -240,7 +240,7 @@ export default function NetworkingPage() {
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No more participants</h3>
                   <p className="text-muted-foreground mb-4">
-                    You've seen all available participants. Check back later for new attendees!
+                    You&apos;ve seen all available participants. Check back later for new attendees!
                   </p>
                   <Button asChild>
                     <Link href="#" onClick={() => document.querySelector('[value="connections"]')?.click()}>
