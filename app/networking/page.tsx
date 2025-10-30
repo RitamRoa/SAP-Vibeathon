@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -127,42 +129,42 @@ export default function NetworkingPage() {
   )
 
   const ParticipantCard = ({ participant }: { participant: Participant }) => (
-    <Card className="w-full max-w-sm mx-auto">
-      <CardHeader className="text-center pb-4">
-        <div className="h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-          <User className="h-12 w-12 text-primary" />
-        </div>
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-            <Sparkles className="h-3 w-3 mr-1" />
-            {participant.matchPercentage}% match
-          </Badge>
-        </div>
-        <CardTitle className="text-xl">{participant.name}</CardTitle>
-        <CardDescription>
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Briefcase className="h-3 w-3" />
-            <span>{participant.title}</span>
+    <Card className="w-full max-w-md mx-auto border-border/40 overflow-hidden">
+      <CardHeader className="text-center pb-6 bg-muted/20">
+        <div className="relative mb-6">
+          <div className="h-32 w-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto ring-4 ring-background">
+            <User className="h-16 w-16 text-primary/70" />
           </div>
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <span className="font-medium">{participant.company}</span>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+            <Badge className="bg-primary/90 text-primary-foreground border-0 shadow-lg px-3 py-1">
+              <Sparkles className="h-3 w-3 mr-1.5" />
+              {participant.matchPercentage}% Match
+            </Badge>
           </div>
-          <div className="flex items-center justify-center gap-1">
-            <MapPin className="h-3 w-3" />
+        </div>
+        <CardTitle className="text-2xl font-semibold mb-2">{participant.name}</CardTitle>
+        <CardDescription className="text-base space-y-1">
+          <div className="flex items-center justify-center gap-2">
+            <Briefcase className="h-4 w-4" />
+            <span className="font-medium text-foreground">{participant.title}</span>
+          </div>
+          <div className="font-medium text-muted-foreground">{participant.company}</div>
+          <div className="flex items-center justify-center gap-1.5 text-sm">
+            <MapPin className="h-3.5 w-3.5" />
             <span>{participant.location}</span>
           </div>
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 pt-6">
         <div>
-          <h4 className="font-semibold mb-2">About</h4>
-          <p className="text-sm text-muted-foreground">{participant.bio}</p>
+          <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider text-muted-foreground">About</h4>
+          <p className="text-sm leading-relaxed">{participant.bio}</p>
         </div>
         <div>
-          <h4 className="font-semibold mb-2">Interests</h4>
-          <div className="flex flex-wrap gap-1">
+          <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider text-muted-foreground">Shared Interests</h4>
+          <div className="flex flex-wrap gap-2">
             {participant.interests.map((interest) => (
-              <Badge key={interest} variant="outline" className="text-xs">
+              <Badge key={interest} variant="secondary" className="text-xs px-3 py-1 bg-primary/10 text-foreground border-border/40">
                 {interest}
               </Badge>
             ))}
@@ -176,74 +178,102 @@ export default function NetworkingPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Smart Networking</h1>
-          <p className="text-muted-foreground">Discover and connect with like-minded professionals at the event.</p>
+        <div className="mb-12 opacity-0 animate-fade-in" style={{ animationDelay: '0s', animationFillMode: 'forwards' }}>
+          <h1 className="text-4xl md:text-5xl font-semibold mb-3 text-foreground tracking-tight">Smart Networking</h1>
+          <p className="text-lg text-muted-foreground">Discover and connect with like-minded professionals at the event.</p>
         </div>
 
-        <Tabs defaultValue="discover" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="discover" className="flex items-center gap-2">
+        <Tabs defaultValue="discover" className="space-y-8">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 h-12 bg-muted/30 border border-border/40">
+            <TabsTrigger value="discover" className="flex items-center gap-2 data-[state=active]:bg-background">
               <Users className="h-4 w-4" />
-              Discover ({participants.length - currentIndex} remaining)
+              <span className="hidden sm:inline">Discover</span>
+              <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary border-0 text-xs">
+                {participants.length - currentIndex}
+              </Badge>
             </TabsTrigger>
-            <TabsTrigger value="connections" className="flex items-center gap-2">
+            <TabsTrigger value="connections" className="flex items-center gap-2 data-[state=active]:bg-background">
               <MessageSquare className="h-4 w-4" />
-              My Connections ({connections.length})
+              <span className="hidden sm:inline">Connections</span>
+              <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary border-0 text-xs">
+                {connections.length}
+              </Badge>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="discover" className="space-y-6">
+          <TabsContent value="discover" className="space-y-8">
             {currentIndex < participants.length ? (
-              <div className="max-w-md mx-auto space-y-6">
+              <div className="max-w-md mx-auto space-y-8">
                 <ParticipantCard participant={currentParticipant} />
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center gap-6">
                   <Button
                     variant="outline"
                     size="lg"
-                    className="rounded-full h-14 w-14 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent"
+                    className="rounded-full h-16 w-16 border-2 border-red-500/30 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200 bg-background shadow-lg hover:shadow-xl"
                     onClick={handleIgnore}
                   >
-                    <X className="h-6 w-6" />
+                    <X className="h-7 w-7" />
                   </Button>
 
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="rounded-full bg-transparent"
+                    className="rounded-full h-12 w-12 hover:bg-muted/50"
                     onClick={undoLastAction}
                     disabled={connections.length === 0 && ignored.length === 0}
                   >
-                    <Undo2 className="h-4 w-4" />
+                    <Undo2 className="h-5 w-5" />
                   </Button>
 
                   <Button
                     size="lg"
-                    className="rounded-full h-14 w-14 bg-green-600 hover:bg-green-700"
+                    className="rounded-full h-16 w-16 bg-green-600 hover:bg-green-700 transition-all duration-200 shadow-lg hover:shadow-xl border-0"
                     onClick={handleConnect}
                   >
-                    <Heart className="h-6 w-6" />
+                    <Heart className="h-7 w-7" />
                   </Button>
                 </div>
 
-                <div className="text-center text-sm text-muted-foreground">
-                  <p>Swipe right to connect • Swipe left to pass</p>
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-2">
+                      <Heart className="h-3.5 w-3.5 text-green-600" />
+                      Connect
+                    </span>
+                    <span className="mx-3 text-border">·</span>
+                    <span className="inline-flex items-center gap-2">
+                      <X className="h-3.5 w-3.5 text-red-600" />
+                      Pass
+                    </span>
+                    <span className="mx-3 text-border">·</span>
+                    <span className="inline-flex items-center gap-2">
+                      <Undo2 className="h-3.5 w-3.5" />
+                      Undo
+                    </span>
+                  </p>
                 </div>
               </div>
             ) : (
-              <Card className="text-center py-12 max-w-md mx-auto">
+              <Card className="text-center py-16 max-w-md mx-auto border-border/40">
                 <CardContent>
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No more participants</h3>
-                  <p className="text-muted-foreground mb-4">
-                    You&apos;ve seen all available participants. Check back later for new attendees!
+                  <div className="h-20 w-20 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-6">
+                    <Users className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">All caught up!</h3>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    You&apos;ve seen all available participants. Check back later for new attendees or explore your connections.
                   </p>
-                  <Button asChild>
-                    <Link href="#" onClick={() => document.querySelector('[value="connections"]')?.click()}>
+                  <Button size="lg" asChild className="shadow-lg">
+                    <Link href="#" onClick={(e) => {
+                      e.preventDefault()
+                      const button = document.querySelector('[value="connections"]') as HTMLButtonElement
+                      button?.click()
+                    }}>
+                      <MessageSquare className="h-4 w-4 mr-2" />
                       View My Connections
                     </Link>
                   </Button>
@@ -252,72 +282,80 @@ export default function NetworkingPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="connections" className="space-y-6">
+          <TabsContent value="connections" className="space-y-8">
             {connections.length > 0 ? (
               <>
                 {/* Search */}
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative max-w-md mx-auto">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
-                    placeholder="Search connections..."
+                    placeholder="Search by name, company, or interests..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 h-12 bg-muted/30 border-border/40 focus:bg-background"
                   />
                 </div>
 
                 {/* Connections Grid */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredConnections.map((participant) => (
-                    <Card key={participant.id} className="hover:border-primary/50 transition-colors">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                            <User className="h-6 w-6 text-primary" />
+                    <Card key={participant.id} className="border-border/40 transition-all duration-200 hover:bg-muted/20 hover:border-primary/30 group">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-start gap-4 mb-3">
+                          <div className="relative">
+                            <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-2 ring-background">
+                              <User className="h-7 w-7 text-primary/70" />
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
                           </div>
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{participant.name}</CardTitle>
-                            <CardDescription>{participant.title}</CardDescription>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-lg mb-1 group-hover:text-primary transition-colors">{participant.name}</CardTitle>
+                            <CardDescription className="text-sm">{participant.title}</CardDescription>
+                            <Badge className="mt-2 bg-primary/90 text-primary-foreground border-0 text-xs px-2 py-0.5">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              {participant.matchPercentage}%
+                            </Badge>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                            <Sparkles className="h-3 w-3 mr-1" />
-                            {participant.matchPercentage}% match
-                          </Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Briefcase className="h-3 w-3" />
-                            <span>{participant.company}</span>
+                      <CardContent className="pt-0 space-y-4">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2.5 text-muted-foreground">
+                            <Briefcase className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate">{participant.company}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span>{participant.location}</span>
+                          <div className="flex items-center gap-2.5 text-muted-foreground">
+                            <MapPin className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate">{participant.location}</span>
                           </div>
-                          <div className="flex flex-wrap gap-1">
-                            {participant.interests.slice(0, 3).map((interest) => (
-                              <Badge key={interest} variant="outline" className="text-xs">
-                                {interest}
-                              </Badge>
-                            ))}
-                            {participant.interests.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{participant.interests.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex gap-2 pt-2">
-                            <Button size="sm" className="flex-1">
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              Message
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => removeConnection(participant.id)}>
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1.5">
+                          {participant.interests.slice(0, 3).map((interest) => (
+                            <Badge key={interest} variant="secondary" className="text-xs bg-muted/50 border-border/40">
+                              {interest}
+                            </Badge>
+                          ))}
+                          {participant.interests.length > 3 && (
+                            <Badge variant="secondary" className="text-xs bg-muted/50 border-border/40">
+                              +{participant.interests.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-2 pt-2">
+                          <Button size="sm" className="flex-1 shadow-sm">
+                            <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                            Message
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => removeConnection(participant.id)}
+                            className="hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -325,15 +363,22 @@ export default function NetworkingPage() {
                 </div>
               </>
             ) : (
-              <Card className="text-center py-12">
+              <Card className="text-center py-16 max-w-md mx-auto border-border/40">
                 <CardContent>
-                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No connections yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start discovering participants to build your professional network.
+                  <div className="h-20 w-20 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-6">
+                    <MessageSquare className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">No connections yet</h3>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    Start discovering participants to build your professional network at this event.
                   </p>
-                  <Button asChild>
-                    <Link href="#" onClick={() => document.querySelector('[value="discover"]')?.click()}>
+                  <Button size="lg" asChild className="shadow-lg">
+                    <Link href="#" onClick={(e) => {
+                      e.preventDefault()
+                      const button = document.querySelector('[value="discover"]') as HTMLButtonElement
+                      button?.click()
+                    }}>
+                      <Users className="h-4 w-4 mr-2" />
                       Start Networking
                     </Link>
                   </Button>

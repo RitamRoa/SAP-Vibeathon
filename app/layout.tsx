@@ -3,6 +3,9 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "sonner"
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: "Event Hub - AI-Powered Event Companion",
@@ -18,8 +21,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
       <body className="min-h-screen bg-background font-sans text-foreground">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
+          <Toaster richColors />
         </ThemeProvider>
       </body>
     </html>

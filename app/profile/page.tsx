@@ -1,0 +1,582 @@
+"use client"
+
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Building2, 
+  Briefcase, 
+  GraduationCap,
+  MapPin,
+  Download,
+  Share2,
+  Edit,
+  QrCode,
+  Calendar,
+  Award,
+  Loader2
+} from "lucide-react"
+import { useUser } from "@/hooks/use-supabase"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import QRCodeLib from "qrcode"
+import { Navigation } from "@/components/navigation"
+import { createClient } from "@/lib/supabase/client"
+
+interface UserProfile {
+  id: string
+  email: string
+  user_metadata: {
+    full_name?: string
+    phone?: string
+    user_type?: "professional" | "student"
+    company?: string
+    designation?: string
+    experience?: string
+    college?: string
+    degree?: string
+    year_of_study?: string
+    skills?: string[]
+    avatar_url?: string
+  }
+}
+
+export default function ProfilePage() {
+  const { user, loading: userLoading } = useUser()
+  const [qrCode, setQrCode] = useState<string>("")
+  const [loading, setLoading] = useState(true)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const router = useRouter()
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    phone: "",
+    company: "",
+    designation: "",
+    experience: "",
+    college: "",
+    degree: "",
+    year_of_study: "",
+  })
+
+  useEffect(() => {
+    if (!userLoading) {
+      if (!user) {
+        router.push("/login")
+        return
+      }
+      loadUserProfile()
+      // Initialize edit form with current data
+      if (user.user_metadata) {
+        setEditForm({
+          full_name: user.user_metadata.full_name || "",
+          phone: user.user_metadata.phone || "",
+          company: user.user_metadata.company || "",
+          designation: user.user_metadata.designation || "",
+          experience: user.user_metadata.experience || "",
+          college: user.user_metadata.college || "",
+          degree: user.user_metadata.degree || "",
+          year_of_study: user.user_metadata.year_of_study || "",
+        })
+      }
+    }
+  }, [user, userLoading, router])
+
+  const loadUserProfile = async () => {
+    if (!user) return
+    
+    try {
+      // Generate QR code with user ID
+      const qrData = JSON.stringify({
+        userId: user.id,
+        email: user.email,
+        name: user.user_metadata?.full_name || "User",
+        checkInCode: `EVENT-${user.id.substring(0, 8).toUpperCase()}`,
+        timestamp: new Date().toISOString()
+      })
+      
+      const qrCodeDataUrl = await QRCodeLib.toDataURL(qrData, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF"
+        }
+      })
+      
+      setQrCode(qrCodeDataUrl)
+    } catch (error) {
+      console.error("Error loading profile:", error)
+      toast.error("Failed to load profile")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const downloadQRCode = () => {
+    if (!qrCode) return
+    
+    const link = document.createElement("a")
+    link.href = qrCode
+    link.download = `event-qr-${user?.user_metadata?.full_name || "user"}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success("QR code downloaded!")
+  }
+
+  const shareProfile = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "My Event Profile",
+          text: `Check out my profile for the event!`,
+          url: window.location.href
+        })
+      } catch (error) {
+        console.error("Error sharing:", error)
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      toast.success("Profile link copied to clipboard!")
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!user) return
+    
+    setSaving(true)
+    try {
+      const supabase = createClient()
+      
+      // Update user metadata
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          ...user.user_metadata,
+          ...editForm
+        }
+      })
+      
+      if (error) throw error
+      
+      toast.success("Profile updated successfully!")
+      setEditDialogOpen(false)
+      
+      // Reload the page to get fresh data
+      window.location.reload()
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      toast.error("Failed to update profile")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U"
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
+  }
+
+  if (userLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  const metadata = user.user_metadata
+  const isProfessional = metadata?.user_type === "professional"
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8 animate-fade-in">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">My Profile</h1>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={shareProfile}
+              className="transition-all duration-300 hover:scale-105 hover:shadow-md"
+            >
+              <Share2 className="h-4 w-4 mr-2 transition-transform duration-300 hover:rotate-12" />
+              Share
+            </Button>
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="transition-all duration-300 hover:scale-105 hover:shadow-md"
+                >
+                  <Edit className="h-4 w-4 mr-2 transition-transform duration-300 hover:rotate-12" />
+                  Edit Profile
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-slide-in-right">
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                  <DialogDescription>
+                    Update your profile information. Changes will be reflected across the platform.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name">Full Name</Label>
+                    <Input
+                      id="full_name"
+                      value={editForm.full_name}
+                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                  
+                  {isProfessional ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="company">Company</Label>
+                        <Input
+                          id="company"
+                          value={editForm.company}
+                          onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                          placeholder="Enter your company name"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="designation">Designation</Label>
+                        <Input
+                          id="designation"
+                          value={editForm.designation}
+                          onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })}
+                          placeholder="Enter your job title"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="experience">Years of Experience</Label>
+                        <Input
+                          id="experience"
+                          value={editForm.experience}
+                          onChange={(e) => setEditForm({ ...editForm, experience: e.target.value })}
+                          placeholder="Enter years of experience"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="college">College/University</Label>
+                        <Input
+                          id="college"
+                          value={editForm.college}
+                          onChange={(e) => setEditForm({ ...editForm, college: e.target.value })}
+                          placeholder="Enter your college name"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="degree">Degree/Program</Label>
+                        <Input
+                          id="degree"
+                          value={editForm.degree}
+                          onChange={(e) => setEditForm({ ...editForm, degree: e.target.value })}
+                          placeholder="Enter your degree"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="year_of_study">Year of Study</Label>
+                        <Select
+                          value={editForm.year_of_study}
+                          onValueChange={(value) => setEditForm({ ...editForm, year_of_study: value })}
+                        >
+                          <SelectTrigger id="year_of_study">
+                            <SelectValue placeholder="Select year" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1st Year</SelectItem>
+                            <SelectItem value="2">2nd Year</SelectItem>
+                            <SelectItem value="3">3rd Year</SelectItem>
+                            <SelectItem value="4">4th Year</SelectItem>
+                            <SelectItem value="5">5th Year</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditDialogOpen(false)}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveProfile} disabled={saving}>
+                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Changes
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Profile Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Main Profile Card */}
+            <Card className="animate-fade-in-up transition-all duration-300 hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-start gap-4">
+                  <Avatar className="h-20 w-20 ring-2 ring-primary/20 transition-all duration-300 hover:ring-primary/50 hover:scale-110">
+                    <AvatarImage src={metadata?.avatar_url} />
+                    <AvatarFallback className="text-2xl">
+                      {getInitials(metadata?.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <CardTitle className="text-2xl mb-2">
+                      {metadata?.full_name || "User"}
+                    </CardTitle>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant={isProfessional ? "default" : "secondary"} className="animate-bounce-in">
+                        {isProfessional ? (
+                          <>
+                            <Briefcase className="h-3 w-3 mr-1" />
+                            Professional
+                          </>
+                        ) : (
+                          <>
+                            <GraduationCap className="h-3 w-3 mr-1" />
+                            Student
+                          </>
+                        )}
+                      </Badge>
+                    </div>
+                    {isProfessional ? (
+                      <div className="space-y-1">
+                        {metadata?.designation && (
+                          <p className="text-lg font-semibold">{metadata.designation}</p>
+                        )}
+                        {metadata?.company && (
+                          <p className="text-muted-foreground flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            {metadata.company}
+                          </p>
+                        )}
+                        {metadata?.experience && (
+                          <p className="text-sm text-muted-foreground">
+                            {metadata.experience} years experience
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {metadata?.degree && (
+                          <p className="text-lg font-semibold">{metadata.degree}</p>
+                        )}
+                        {metadata?.college && (
+                          <p className="text-muted-foreground flex items-center gap-2">
+                            <GraduationCap className="h-4 w-4" />
+                            {metadata.college}
+                          </p>
+                        )}
+                        {metadata?.year_of_study && (
+                          <p className="text-sm text-muted-foreground">
+                            Year {metadata.year_of_study}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{user.email}</p>
+                    </div>
+                  </div>
+                  {metadata?.phone && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Phone</p>
+                        <p className="font-medium">{metadata.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Skills & Interests */}
+            {metadata?.skills && metadata.skills.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    Skills & Interests
+                  </CardTitle>
+                  <CardDescription>
+                    Your areas of expertise and interests
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {metadata.skills.map((skill: string, index: number) => (
+                      <Badge key={index} variant="outline" className="text-sm">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Activity/Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-3xl font-bold">0</p>
+                    <p className="text-sm text-muted-foreground">Sessions Attended</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold">0</p>
+                    <p className="text-sm text-muted-foreground">Connections Made</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold">0</p>
+                    <p className="text-sm text-muted-foreground">Events Joined</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - QR Code */}
+          <div className="space-y-6">
+            <Card className="sticky top-4 animate-fade-in-up transition-all duration-300 hover:shadow-xl" style={{ animationDelay: '0.2s', opacity: 0 }}>
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-2">
+                  <div className="p-3 bg-primary/10 rounded-full transition-all duration-300 hover:bg-primary/20 hover:scale-110 hover:rotate-12">
+                    <QrCode className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <CardTitle>Your Check-in QR Code</CardTitle>
+                <CardDescription>
+                  Show this QR code at the event entrance for quick check-in
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {qrCode && (
+                  <div className="flex justify-center">
+                    <div className="p-4 bg-white rounded-lg border-2 border-primary transition-all duration-300 hover:border-primary/70 hover:shadow-lg hover:scale-105 animate-bounce-in">
+                      <img 
+                        src={qrCode} 
+                        alt="Event QR Code" 
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                <div className="text-center">
+                  <p className="text-sm font-mono font-semibold mb-1 transition-colors hover:text-primary">
+                    {`EVENT-${user.id.substring(0, 8).toUpperCase()}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Your unique check-in code
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Button 
+                    className="w-full transition-all duration-300 hover:scale-105 hover:shadow-lg" 
+                    onClick={downloadQRCode}
+                    variant="outline"
+                  >
+                    <Download className="h-4 w-4 mr-2 transition-transform duration-300 hover:-translate-y-1" />
+                    Download QR Code
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Save this QR code on your phone for easy access
+                  </p>
+                </div>
+
+                <div className="bg-muted p-4 rounded-lg transition-all duration-300 hover:bg-muted/80">
+                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 transition-transform duration-300 hover:rotate-12" />
+                    Check-in Information
+                  </h4>
+                  <ul className="text-xs space-y-1 text-muted-foreground">
+                    <li>• Valid for event entrance</li>
+                    <li>• Can be scanned multiple times</li>
+                    <li>• Keep it secure and don't share</li>
+                    <li>• Works offline once downloaded</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -10,14 +12,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Logo } from "@/components/ui/logo"
 import { ArrowLeft, User, GraduationCap, CheckCircle } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 type AttendeeCategory = "professional" | "student"
 
 interface ProfessionalFormData {
   fullName: string
   email: string
+  password: string
   mobileNumber: string
   attendeeCategory: "professional"
   company: string
@@ -34,6 +39,7 @@ interface ProfessionalFormData {
 interface StudentFormData {
   fullName: string
   email: string
+  password: string
   mobileNumber: string
   attendeeCategory: "student"
   college: string
@@ -73,7 +79,8 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [registrationComplete, setRegistrationComplete] = useState(false)
   const [registrationId, setRegistrationId] = useState("")
-  const { toast } = useToast()
+  const supabase = createClient()
+  const router = useRouter()
 
   const handleCategorySelect = (category: AttendeeCategory) => {
     setAttendeeCategory(category)
@@ -88,12 +95,12 @@ export default function RegisterPage() {
   }
 
   const validateProfessionalForm = (): boolean => {
-    const required = ['fullName', 'email', 'mobileNumber', 'company', 'designation', 'foodChoice']
+    const required = ['fullName', 'email', 'password', 'mobileNumber', 'company', 'designation', 'foodChoice']
     return required.every(field => professionalData[field as keyof ProfessionalFormData])
   }
 
   const validateStudentForm = (): boolean => {
-    const required = ['fullName', 'email', 'mobileNumber', 'college', 'ugPg', 'yearOfStudy', 'foodChoice']
+    const required = ['fullName', 'email', 'password', 'mobileNumber', 'college', 'ugPg', 'yearOfStudy', 'foodChoice']
     return required.every(field => studentData[field as keyof StudentFormData])
   }
 
@@ -112,34 +119,57 @@ export default function RegisterPage() {
     const isValid = attendeeCategory === "professional" ? validateProfessionalForm() : validateStudentForm()
     
     if (!isValid) {
-      toast({
-        variant: "destructive",
-        title: "Missing required fields",
-        description: "Please fill in all required fields before submitting.",
-      })
+      toast.error("Please fill in all required fields before submitting.")
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const data = attendeeCategory === "professional" ? professionalData : studentData
       
-      const regId = generateRegistrationId()
-      setRegistrationId(regId)
-      setRegistrationComplete(true)
+      // Create user account in Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email!,
+        password: data.password!,
+        options: {
+          data: {
+            full_name: data.fullName,
+            mobile_number: data.mobileNumber,
+            attendee_category: attendeeCategory,
+            ...(attendeeCategory === "professional" ? {
+              company: professionalData.company,
+              designation: professionalData.designation,
+            } : {
+              college: studentData.college,
+              ug_pg: studentData.ugPg,
+              year_of_study: studentData.yearOfStudy,
+            }),
+            food_choice: data.foodChoice,
+            country: data.country,
+            gender: data.gender,
+            blood_group: data.bloodGroup,
+            emergency_contact_name: data.emergencyContactName,
+            emergency_contact_number: data.emergencyContactNumber,
+            consent_updates: data.consentUpdates,
+          },
+        },
+      })
 
-      toast({
-        title: "Registration successful!",
-        description: "You will receive a confirmation email shortly.",
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: "Please try again later.",
-      })
+      if (authError) {
+        toast.error(authError.message)
+        return
+      }
+
+      if (authData.user) {
+        const regId = generateRegistrationId()
+        setRegistrationId(regId)
+        setRegistrationComplete(true)
+
+        toast.success("Registration successful! Please check your email for verification.")
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Registration failed. Please try again later.")
     } finally {
       setIsSubmitting(false)
     }
@@ -315,6 +345,24 @@ export default function RegisterPage() {
                             }
                           }}
                           required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password *</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Create a password"
+                          value={attendeeCategory === "professional" ? professionalData.password || "" : studentData.password || ""}
+                          onChange={(e) => {
+                            if (attendeeCategory === "professional") {
+                              handleProfessionalDataChange("password", e.target.value)
+                            } else {
+                              handleStudentDataChange("password", e.target.value)
+                            }
+                          }}
+                          required
+                          minLength={6}
                         />
                       </div>
                     </div>
